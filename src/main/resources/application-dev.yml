@@ -17,6 +17,9 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         default_batch_fetch_size: 1000
 
-logging:
-  level:
-    root: INFO
+
+  # 2. Thymeleaf(또는 뷰 리졸버)용 설정
+  mvc:
+    view:
+      prefix: /templates/   # Thymeleaf 뷰 파일 위치 (classpath:/templates/)
+      suffix: .html         # 뷰 파일 확장자
