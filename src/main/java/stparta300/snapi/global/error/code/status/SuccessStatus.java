@@ -8,9 +8,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum SuccessStatus implements BaseCode {
     // 멤버
-    GET_MEMBER_SUCCESS(HttpStatus.OK, "MEMBER_SE2001", "회원 정보 조회 성공되었습니다."),
+    LOGIN_SUCCESS(HttpStatus.OK, "MEMBER_SE2001", "회원 로그인이 성공되었습니다."),
     ;
-
     private final HttpStatus httpStatus;
     private final String code;
     private final String message;
