@@ -17,7 +17,8 @@ public enum ErrorStatus implements BaseErrorCode {
     SIGNUP_USERNAME_DUPLICATED(HttpStatus.BAD_REQUEST, "SIGNUP400", "회원가입 실패. 아이디 중복"),
     PROFILE_BAD_REQUEST(HttpStatus.BAD_REQUEST, "PROFILE400", "프로필 설정 실패"),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER404", "사용자를 찾을 수 없습니다."),
-    ;
+    MEMBER_EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, "MEMBER400_EMAIL", "이미 사용 중인 이메일입니다."),
+    MEMBER_UPDATE_BAD_REQUEST(HttpStatus.BAD_REQUEST, "MEMBER400", "회원정보 수정 실패"),
     ;
 
 
@@ -27,4 +28,20 @@ public enum ErrorStatus implements BaseErrorCode {
 
     @Override
     public ErrorReasonDTO getReason() {
-        return ErrorRe
+        return ErrorReasonDTO.builder()
+                .message(message)
+                .code(code)
+                .isSuccess(false)
+                .build();
+    }
+
+    @Override
+    public ErrorReasonDTO getReasonHttpStatus() {
+        return ErrorReasonDTO.builder()
+                .message(message)
+                .code(code)
+                .isSuccess(false)
+                .httpStatus(httpStatus)
+                .build();
+    }
+}

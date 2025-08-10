@@ -1,3 +1,4 @@
 package stparta300.snapi.domain.mission.service;
 
-public interface MissionServi
+public interface MissionService {
+}

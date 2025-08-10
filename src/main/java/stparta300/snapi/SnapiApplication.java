@@ -6,4 +6,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing; // 추�
 
 @EnableJpaAuditing // ← 추가함
 @SpringBootApplication
-public class S
+public class SnapiApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(SnapiApplication.class, args);
+	}
+
+}

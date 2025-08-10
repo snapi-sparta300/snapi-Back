@@ -10,10 +10,19 @@ import stparta300.snapi.domain.user.dto.request.ProfileSetupRequest;
 import stparta300.snapi.domain.user.dto.request.SignupRequest;
 import stparta300.snapi.domain.user.dto.response.ProfileSetupResponse;
 import stparta300.snapi.domain.user.dto.response.SignupResponse;
+import stparta300.snapi.domain.user.dto.response.UserDetailResponse;
 import stparta300.snapi.domain.user.entity.User;
 import stparta300.snapi.domain.user.handler.UserHandler;
 import stparta300.snapi.domain.user.repository.UserRepository;
 import stparta300.snapi.global.error.code.status.ErrorStatus;
+import org.springframework.dao.DataIntegrityViolationException;
+import stparta300.snapi.domain.model.enums.Gender;
+import stparta300.snapi.domain.user.dto.request.UpdateMemberRequest;
+import stparta300.snapi.domain.user.dto.response.UpdateMemberResponse;
+
+
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +75,76 @@ public class UserServiceImpl implements UserService {
         return userConverter.toProfileSetupResponse(user);
     }
 
+
+    @Override
+    public UserDetailResponse getMemberProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserHandler(ErrorStatus.MEMBER_NOT_FOUND));
+        return userConverter.toUserDetail(user);
+    }
+
+    @Override
+    @Transactional
+    public UpdateMemberResponse updateMember(Long userId, UpdateMemberRequest req) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserHandler(ErrorStatus.MEMBER_NOT_FOUND));
+
+        // nickname
+        if (req.getNickname() != null) {
+            String nn = req.getNickname().trim();
+            if (nn.isEmpty()) throw new UserHandler(ErrorStatus.MEMBER_UPDATE_BAD_REQUEST);
+            user.setNickname(nn);
+        }
+
+        // email
+        if (req.getEmail() != null) {
+            String email = normalizeEmail(req.getEmail());
+            if (email.isEmpty()) throw new UserHandler(ErrorStatus.MEMBER_UPDATE_BAD_REQUEST);
+            if (userRepository.existsByEmailAndIdNot(email, userId)) {
+                throw new UserHandler(ErrorStatus.MEMBER_EMAIL_DUPLICATED);
+            }
+            user.setEmail(email);
+        }
+
+        // gender
+        if (req.getGender() != null) {
+            user.setGender(parseGender(req.getGender()));
+        }
+
+        // birth
+        if (req.getBirth() != null) {
+            user.setBirth(parseBirth(req.getBirth()));
+        }
+
+        // term
+        if (req.getTerm() != null) {
+            user.setTerm(req.getTerm());
+        }
+
+        try {
+            // JPA Dirty Checking → update
+            return userConverter.toUpdateResponse(user);
+        } catch (DataIntegrityViolationException e) {
+            // DB 유니크 경합 대비
+            throw new UserHandler(ErrorStatus.MEMBER_EMAIL_DUPLICATED);
+        }
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private Gender parseGender(String value) {
+        String v = value.trim();
+        if (v.equals("남자")) return Gender.MALE;
+        if (v.equals("여자")) return Gender.FEMALE;
+        throw new UserHandler(ErrorStatus.MEMBER_UPDATE_BAD_REQUEST);
+    }
+
+    private LocalDate parseBirth(String yyyyMMdd) {
+        try { return LocalDate.parse(yyyyMMdd); }
+        catch (DateTimeParseException e) { throw new UserHandler(ErrorStatus.MEMBER_UPDATE_BAD_REQUEST); }
+    }
 
 }
 

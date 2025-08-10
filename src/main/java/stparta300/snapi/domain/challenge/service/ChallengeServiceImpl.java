@@ -1,3 +1,4 @@
 package stparta300.snapi.domain.challenge.service;
 
-public class ChallengeService
+public class ChallengeServiceImpl {
+}

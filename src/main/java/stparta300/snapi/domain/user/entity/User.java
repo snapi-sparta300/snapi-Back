@@ -49,4 +49,5 @@ public class User extends BaseEntity {
     private Long userPoint;
 
     public void plusPoint(long delta) { this.userPoint = this.userPoint + delta; }
-    public void minusPoint(long delta) { this.userPoint = Math.max(0, this.userPoint - del
+    public void minusPoint(long delta) { this.userPoint = Math.max(0, this.userPoint - delta); }
+}

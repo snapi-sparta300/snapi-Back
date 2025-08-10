@@ -1,3 +1,106 @@
 package stparta300.snapi.domain.user.converter;
 
-import org.springframework.
+import org.springframework.stereotype.Component;
+import stparta300.snapi.domain.user.dto.request.SignupRequest;
+import stparta300.snapi.domain.user.dto.response.*;
+import stparta300.snapi.domain.user.entity.User;
+import stparta300.snapi.domain.model.enums.Gender;
+import stparta300.snapi.domain.user.dto.request.ProfileSetupRequest;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+@Component
+public class UserConverter {
+    public LoginResponse toLoginResponse(Long userId) {
+        return LoginResponse.builder().userId(userId).build();
+    }
+
+    // 평문 저장(요청에 맞춤). 운영 전환 시 인코딩으로 쉽게 교체 가능.
+    public User toUser(SignupRequest req) {
+        return User.builder()
+                .userName(req.getUsername())
+                .password(req.getPassword())
+                .term(false)          // 기본값(동의 절차 없으면 false)
+                .userPoint(0L)        // 기본 0포인트
+                .build();
+    }
+
+    public SignupResponse toSignupResponse(User saved) {
+        return SignupResponse.builder()
+                .userId(saved.getId())
+                .username(saved.getUserName())
+                .build();
+    }
+
+
+    public void applyProfile(User user, ProfileSetupRequest req) {
+        user.setNickname(req.getNickname());
+        user.setEmail(req.getEmail());
+        user.setGender(parseGender(req.getGender()));
+        user.setBirth(parseDate(req.getBirth()));
+        user.setTerm(Boolean.TRUE.equals(req.getTerm()));
+    }
+
+    public ProfileSetupResponse toProfileSetupResponse(User user) {
+        return ProfileSetupResponse.builder()
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .email(user.getEmail())
+                .gender(renderGender(user.getGender()))
+                .birth(user.getBirth() != null ? user.getBirth().toString() : null)
+                .userPoint(user.getUserPoint())
+                .build();
+    }
+
+    private Gender parseGender(String value) {
+        if (value == null) return null;
+        String v = value.trim();
+        if (v.equals("남자")) return Gender.MALE;
+        if (v.equals("여자")) return Gender.FEMALE;
+        // 프로젝트 Gender enum 값에 맞게 필요 시 추가 분기
+        throw new IllegalArgumentException("gender는 '남자' 또는 '여자'만 허용합니다.");
+    }
+
+    private String renderGender(Gender gender) {
+        if (gender == null) return null;
+        switch (gender) {
+            case MALE: return "남자";
+            case FEMALE: return "여자";
+            default: return gender.name();
+        }
+    }
+
+    private LocalDate parseDate(String yyyyMMdd) {
+        try {
+            return LocalDate.parse(yyyyMMdd);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("birth 형식은 YYYY-MM-DD 여야 합니다.");
+        }
+    }
+
+
+    public UserDetailResponse toUserDetail(User u) {
+        return UserDetailResponse.builder()
+                .userId(u.getId())
+                .nickname(u.getNickname())
+                .email(u.getEmail())
+                .gender(renderGender(u.getGender()))
+                .birth(u.getBirth() != null ? u.getBirth().toString() : null)
+                .userPoint(u.getUserPoint())
+                .build();
+    }
+
+    public UpdateMemberResponse toUpdateResponse(User u) {
+        return UpdateMemberResponse.builder()
+                .userId(u.getId())
+                .userName(u.getUserName())
+                .email(u.getEmail())
+                .nickname(u.getNickname())
+                .gender(renderGender(u.getGender()))
+                .birth(u.getBirth() != null ? u.getBirth().toString() : null)
+                .term(u.isTerm())
+                .userPoint(u.getUserPoint())
+                .build();
+    }
+
+}

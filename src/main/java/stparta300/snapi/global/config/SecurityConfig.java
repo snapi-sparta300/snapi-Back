@@ -31,6 +31,7 @@ public class SecurityConfig {
             "/webjars/**",
             "/login/**",
             "/signup/**",
+            "/members/**"
 
     };
 
@@ -64,4 +65,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCrypt
+        return new BCryptPasswordEncoder();
+    }
+}
