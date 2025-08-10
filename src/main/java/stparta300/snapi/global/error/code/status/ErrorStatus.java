@@ -13,7 +13,8 @@ public enum ErrorStatus implements BaseErrorCode {
     _UNAUTHORIZED(HttpStatus.UNAUTHORIZED,"COMMON401","인증이 필요합니다."),
     _FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON403", "금지된 요청입니다."),
 
-    LOGIN_BAD_CREDENTIALS(HttpStatus.BAD_REQUEST, "LOGIN400", "아이디 또는 비밀번호가 틀렸습니다.");
+    LOGIN_BAD_CREDENTIALS(HttpStatus.BAD_REQUEST, "LOGIN400", "아이디 또는 비밀번호가 틀렸습니다."),
+    SIGNUP_USERNAME_DUPLICATED(org.springframework.http.HttpStatus.BAD_REQUEST, "SIGNUP400", "회원가입 실패. 아이디 중복"),;
     ;
 
 
@@ -31,12 +32,4 @@ public enum ErrorStatus implements BaseErrorCode {
     }
 
     @Override
-    public ErrorReasonDTO getReasonHttpStatus() {
-        return ErrorReasonDTO.builder()
-                .message(message)
-                .code(code)
-                .isSuccess(false)
-                .httpStatus(httpStatus)
-                .build();
-    }
-}
+    pub

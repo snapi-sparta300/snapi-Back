@@ -1,4 +1,3 @@
 package stparta300.snapi.domain.mission.service;
 
-public class MissionServiceImpl {
-}
+public class MissionServiceIm

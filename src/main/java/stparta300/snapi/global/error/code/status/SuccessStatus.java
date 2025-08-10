@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum SuccessStatus implements BaseCode {
     // 멤버
     LOGIN_SUCCESS(HttpStatus.OK, "MEMBER_SE2001", "회원 로그인이 성공되었습니다."),
+    SIGNUP_SUCCESS(org.springframework.http.HttpStatus.OK, "MEMBER_SE2002", "회원가입 성공"),
     ;
     private final HttpStatus httpStatus;
     private final String code;
@@ -28,8 +29,4 @@ public enum SuccessStatus implements BaseCode {
         return ReasonDTO.builder()
                 .message(message)
                 .code(code)
-                .isSuccess(true)
-                .httpStatus(httpStatus)
-                .build();
-    }
-}
+              
