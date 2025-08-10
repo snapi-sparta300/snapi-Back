@@ -8,6 +8,7 @@ import stparta300.snapi.domain.model.enums.Gender;
 import java.time.LocalDate;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -48,5 +49,4 @@ public class User extends BaseEntity {
     private Long userPoint;
 
     public void plusPoint(long delta) { this.userPoint = this.userPoint + delta; }
-    public void minusPoint(long delta) { this.userPoint = Math.max(0, this.userPoint - delta); }
-}
+    public void minusPoint(long delta) { this.userPoint = Math.max(0, this.userPoint - del
