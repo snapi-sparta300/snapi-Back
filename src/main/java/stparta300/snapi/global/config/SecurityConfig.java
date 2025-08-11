@@ -3,6 +3,8 @@ package stparta300.snapi.global.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -34,6 +36,7 @@ public class SecurityConfig {
             "/members/**",
             "/challenges/**",
             "/mission/**",
+            "/api/**"
 
     };
 
@@ -43,8 +46,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults()) // ✅ CORS 보안필터 활성화
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(SECURITY_ALLOW_ARRAY).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -54,8 +59,14 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowCredentials(false);
+//        config.setAllowCredentials(true);
+        config.setAllowedOrigins(List.of(
+                "http://localhost:8080",   // Swagger UI
+                "http://localhost:3000",   // React
+                "http://localhost:5173"    // Vite 등
+        ));
+        // 또는: config.addAllowedOriginPattern("*");  // 임시 전체 허용
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("*"));
