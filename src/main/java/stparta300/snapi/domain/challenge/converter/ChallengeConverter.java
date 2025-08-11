@@ -38,4 +38,5 @@ public class ChallengeConverter {
         }
     }
     private Long getSafeLong(Long v) { return v == null ? 0L : v; }
+
 }

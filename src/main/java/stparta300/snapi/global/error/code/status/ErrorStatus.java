@@ -21,7 +21,10 @@ public enum ErrorStatus implements BaseErrorCode {
     MEMBER_UPDATE_BAD_REQUEST(HttpStatus.BAD_REQUEST, "MEMBER400", "회원정보 수정 실패"),
     CHALLENGE_NOT_FOUND(HttpStatus.NOT_FOUND, "404", "대상을 찾을 수 없습니다."), // 챌린지 미존재
     CHALLENGE_CAPACITY_FULL(HttpStatus.CONFLICT, "409", "챌린지 정원이 가득 찼습니다."),
-    CHALLENGE_ALREADY_JOINED(HttpStatus.CONFLICT, "409", "이미 참여 중인 챌린지입니다."), // (선택)
+    CHALLENGE_ALREADY_JOINED(HttpStatus.CONFLICT, "409", "이미 참여 중인 챌린지입니다."),
+    USER_CHALLENGE_NOT_FOUND(HttpStatus.BAD_REQUEST, "400", "잘못된 요청입니다."),
+    CHALLENGE_NOT_ALL_MISSIONS_DONE(HttpStatus.CONFLICT, "409", "모든 미션을 완료하지 않아 챌린지를 완료할 수 없습니다."),
+    CHALLENGE_ALREADY_COMPLETED(HttpStatus.CONFLICT, "409", "이미 완료된 챌린지입니다."),// (선택)
     ;
 
 

@@ -2,6 +2,7 @@ package stparta300.snapi.domain.user.converter;
 
 import org.springframework.stereotype.Component;
 import stparta300.snapi.domain.challenge.dto.response.ActiveChallengesResponse;
+import stparta300.snapi.domain.challenge.dto.response.CompleteChallengeResponse;
 import stparta300.snapi.domain.challenge.dto.response.JoinChallengeResponse;
 import stparta300.snapi.domain.user.dto.request.SignupRequest;
 import stparta300.snapi.domain.user.dto.response.*;
@@ -179,4 +180,32 @@ public class UserConverter {
                 .challengeId(uc.getChallenge().getId())
                 .build();
     }
+
+    public CompleteChallengeResponse toCompleteChallengeResponse(UserChallenge uc, long awardedPoint) {
+        var user = uc.getUser();
+        var c = uc.getChallenge();
+
+        long success = numToLong(uc.getSuccessMission());
+        long total = numToLong(c.getTotalMission());
+        long userPoint = numToLong(user.getUserPoint());
+        String completedAt = uc.getUpdatedAt() != null
+                ? uc.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                : null;
+
+        return CompleteChallengeResponse.builder()
+                .userId(user.getId())
+                .userName(user.getUserName())
+                .userChallengeId(uc.getId())
+                .challengeId(c.getId())
+                .state("완료")
+                .successMission(success)
+                .totalMission(total)
+                .awardedPoint(awardedPoint)
+                .userPoint(userPoint)
+                .completedAt(completedAt)
+                .build();
+    }
+
+    private long numToLong(Number n) { return n == null ? 0L : n.longValue(); }
+
 }

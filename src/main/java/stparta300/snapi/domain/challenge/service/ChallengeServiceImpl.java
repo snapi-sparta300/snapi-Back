@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import stparta300.snapi.domain.challenge.converter.ChallengeConverter;
 import stparta300.snapi.domain.challenge.dto.response.ChallengeListResponse;
+import stparta300.snapi.domain.challenge.dto.response.CompleteChallengeResponse;
 import stparta300.snapi.domain.challenge.dto.response.JoinChallengeResponse;
 import stparta300.snapi.domain.challenge.entity.Challenge;
 import stparta300.snapi.domain.challenge.repository.ChallengeRepository;
@@ -74,4 +75,44 @@ public class ChallengeServiceImpl implements ChallengeService {
         // 6) 응답 변환
         return userConverter.toJoinChallengeResponse(user, uc);
     }
+
+
+    @Override
+    @Transactional
+    public CompleteChallengeResponse complete(Long userId, Long challengeId) {
+        // 1) 존재 검증 (User는 조인으로도 가져오지만, 에러 메시지 통일을 위해 미리 검증 가능)
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserHandler(ErrorStatus.MEMBER_NOT_FOUND));
+
+        // 2) 참여 관계 + 잠금 조회
+        UserChallenge uc = userChallengeRepository.findForUpdate(userId, challengeId)
+                .orElseThrow(() -> new UserHandler(ErrorStatus.USER_CHALLENGE_NOT_FOUND));
+
+        // 3) 이미 완료 여부
+        if (uc.getState() == ChallengeState.COMPLETED) {
+            throw new UserHandler(ErrorStatus.CHALLENGE_ALREADY_COMPLETED);
+        }
+
+        // 4) 미션 개수 비교 (타입 차이 안전 변환)
+        long success = numToLong(uc.getSuccessMission());
+        long total = numToLong(uc.getChallenge().getTotalMission());
+        if (success != total) {
+            // 409: 모든 미션 완료 전에는 챌린지 완료 불가
+            throw new UserHandler(ErrorStatus.CHALLENGE_NOT_ALL_MISSIONS_DONE);
+        }
+
+        // 5) 상태 완료 전환
+        uc.markCompleted();
+
+        // 6) 포인트 적립 (챌린지 총 포인트)
+        long award = numToLong(uc.getChallenge().getTotalPoint());
+        long before = numToLong(uc.getUser().getUserPoint());
+        uc.getUser().setUserPoint(before + award);
+
+        // 7) 응답
+        return userConverter.toCompleteChallengeResponse(uc, award);
+    }
+
+    private long numToLong(Number n) { return n == null ? 0L : n.longValue(); }
+
 }

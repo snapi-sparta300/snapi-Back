@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import stparta300.snapi.domain.challenge.dto.response.ActiveChallengesResponse;
 import stparta300.snapi.domain.challenge.dto.response.ChallengeListResponse;
+import stparta300.snapi.domain.challenge.dto.response.CompleteChallengeResponse;
 import stparta300.snapi.domain.challenge.dto.response.JoinChallengeResponse;
 import stparta300.snapi.domain.challenge.service.ChallengeService;
 import stparta300.snapi.domain.user.service.UserService;
@@ -50,6 +51,19 @@ public class ChallengeController {
         return ApiResponse.onSuccess(
                 SuccessStatus.CHALLENGE_JOIN_SUCCESS, // (200, "챌린지 참여 완료")
                 challengeService.join(userId, challengeId)
+        );
+    }
+
+    @Operation(summary = "챌린지 완료 처리",
+            description = "사용자가 참여 중인 챌린지를 완료 상태로 전환합니다.")
+    @PatchMapping("/challenges/{id}/{challengeId}")
+    public ApiResponse<CompleteChallengeResponse> complete(
+            @PathVariable("id") Long userId,
+            @PathVariable Long challengeId
+    ) {
+        return ApiResponse.onSuccess(
+                SuccessStatus.CHALLENGE_COMPLETE_SUCCESS, // (200, "챌린지 완료 처리 성공")
+                challengeService.complete(userId, challengeId)
         );
     }
 }
