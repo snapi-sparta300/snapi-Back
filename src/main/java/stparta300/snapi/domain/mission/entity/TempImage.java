@@ -32,6 +32,8 @@ public class TempImage extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String imageUrl;     // S3 URL
 
-    @Column(name = "sha256_hash", length = 64)
-    private String sha256Hash;   // 중복 체크 참고용(Verified와 다른 정책)
+    @Column(name = "sha256_hash", nullable = false, unique = true)
+    private String sha256Hash;
+//    @Column(name = "sha256_hash", length = 64)
+//    private String sha256Hash;   // 중복 체크 참고용(Verified와 다른 정책)
 }

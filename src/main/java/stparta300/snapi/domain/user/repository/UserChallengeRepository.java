@@ -38,4 +38,6 @@ public interface UserChallengeRepository extends JpaRepository<UserChallenge, Lo
     Optional<UserChallenge> findForUpdate(@Param("userId") Long userId,
                                           @Param("challengeId") Long challengeId);
 
+    Optional<UserChallenge> findByUser_IdAndChallenge_Id(Long userId, Long challengeId);
+
 }

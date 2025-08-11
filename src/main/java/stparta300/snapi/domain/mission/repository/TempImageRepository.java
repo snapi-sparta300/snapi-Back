@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface TempImageRepository extends JpaRepository<TempImage, Long> {
     List<TempImage> findByUserMission_Id(Long userMissionId);
+    boolean existsBySha256Hash(String sha256Hash);
+
 }

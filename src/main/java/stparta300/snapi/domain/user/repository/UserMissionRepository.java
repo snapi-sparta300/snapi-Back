@@ -34,4 +34,9 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
     """)
     Long sumPointByUserIdAndState(@Param("userId") Long userId,
                                   @Param("state") UserMissionState state);
+
+    List<UserMission> findByUser_IdAndChallenge_Id(Long userId, Long challengeId);
+
+    long countByChallenge_IdAndState(Long challengeId,
+                                     stparta300.snapi.domain.model.enums.UserMissionState state);
 }
