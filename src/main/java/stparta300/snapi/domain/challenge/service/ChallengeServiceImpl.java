@@ -4,21 +4,32 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import stparta300.snapi.domain.challenge.converter.ChallengeConverter;
+import stparta300.snapi.domain.challenge.dto.response.ChallengeDetailResponse;
 import stparta300.snapi.domain.challenge.dto.response.ChallengeListResponse;
 import stparta300.snapi.domain.challenge.dto.response.CompleteChallengeResponse;
 import stparta300.snapi.domain.challenge.dto.response.JoinChallengeResponse;
 import stparta300.snapi.domain.challenge.entity.Challenge;
 import stparta300.snapi.domain.challenge.repository.ChallengeRepository;
+import stparta300.snapi.domain.mission.entity.Mission;
+import stparta300.snapi.domain.mission.entity.MissionImage;
+import stparta300.snapi.domain.mission.repository.MissionImageRepository;
+import stparta300.snapi.domain.mission.repository.MissionRepository;
 import stparta300.snapi.domain.model.enums.ChallengeState;
+import stparta300.snapi.domain.model.enums.UserMissionState;
 import stparta300.snapi.domain.user.converter.UserConverter;
 import stparta300.snapi.domain.user.entity.User;
 import stparta300.snapi.domain.user.entity.UserChallenge;
+import stparta300.snapi.domain.user.entity.UserMission;
 import stparta300.snapi.domain.user.handler.UserHandler;
 import stparta300.snapi.domain.user.repository.UserChallengeRepository;
+import stparta300.snapi.domain.user.repository.UserMissionRepository;
 import stparta300.snapi.domain.user.repository.UserRepository;
 import stparta300.snapi.global.error.code.status.ErrorStatus;
+import stparta300.snapi.global.exception.GeneralException;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +41,10 @@ public class ChallengeServiceImpl implements ChallengeService {
     private final UserRepository userRepository;
     private final UserChallengeRepository userChallengeRepository;
     private final UserConverter userConverter;
+    private final MissionRepository missionRepository;
+    private final MissionImageRepository missionImageRepository;
+    private final UserMissionRepository userMissionRepository;
+    private final ChallengeConverter converter;
 
     @Override
     public ChallengeListResponse getChallenges() {
@@ -115,4 +130,64 @@ public class ChallengeServiceImpl implements ChallengeService {
 
     private long numToLong(Number n) { return n == null ? 0L : n.longValue(); }
 
+    @Override
+    public ChallengeDetailResponse getChallengeDetail(Long challengeId, Long userId) {
+        // 1) 챌린지
+        Challenge challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus.CHALLENGE_NOT_FOUND));
+
+        // 2) 미션 목록
+        List<Mission> missions = missionRepository.findAllByChallengeId(challengeId);
+
+        // 3) 대표 이미지 (있는 경우만 맵핑) - N+1 회피: 한번에 조회
+        Map<Long, String> firstImageUrlByMissionId = Map.of();
+        if (!missions.isEmpty()) {
+            List<Long> missionIds = missions.stream().map(Mission::getId).toList();
+            List<MissionImage> images = missionImageRepository.findByMission_IdIn(missionIds);
+            firstImageUrlByMissionId = converter.toFirstImageMap(images);
+        }
+
+        // 4) 유저별 참여/상태 맵 & 요약
+        Map<Long, UserMission> userMissionMap = Collections.emptyMap();
+        ChallengeDetailResponse.UserStatusDto userStatus = null;
+        if (userId != null) {
+            List<UserMission> userMissions = userMissionRepository
+                    .findByUser_IdAndChallenge_Id(userId, challengeId);
+            userMissionMap = converter.toUserMissionMap(userMissions);
+
+            UserChallenge uc = userChallengeRepository
+                    .findByUser_IdAndChallenge_Id(userId, challengeId)
+                    .orElse(null);
+            userStatus = converter.toUserStatus(uc);
+        }
+
+        // 5) 변환
+        ChallengeDetailResponse dto =
+                converter.toDetail(challenge, missions, userMissionMap, firstImageUrlByMissionId, userStatus);
+
+        // 6) 전체 달성률 계산 (%): PASS 수 / (참여자수 * 총미션수) * 100
+        long totalMission = dto.getTotalMission() == null ? 0L : dto.getTotalMission();
+        long participantCount = dto.getCurrentCount() == null ? 0L : dto.getCurrentCount();
+        if (totalMission > 0 && participantCount > 0) {
+            long passCount = userMissionRepository
+                    .countByChallenge_IdAndState(challengeId, UserMissionState.PASS);
+            double rate = (double) passCount / (participantCount * (double) totalMission) * 100.0;
+            // 리플렉션 말고, DTO 재생성으로 값만 교체
+            dto = ChallengeDetailResponse.builder()
+                    .challengeId(dto.getChallengeId())
+                    .name(dto.getName())
+                    .companyName(dto.getCompanyName())
+                    .comment(dto.getComment())
+                    .totalPoint(dto.getTotalPoint())
+                    .maxCount(dto.getMaxCount())
+                    .currentCount(dto.getCurrentCount())
+                    .progressRate(rate)
+                    .totalMission(dto.getTotalMission())
+                    .missions(dto.getMissions())
+                    .userStatus(dto.getUserStatus())
+                    .build();
+        }
+
+        return dto;
+    }
 }

@@ -19,6 +19,7 @@ public enum SuccessStatus implements BaseCode {
     CHALLENGE_LIST_SUCCESS(HttpStatus.OK, "200", "전체 챌린지 목록 조회 성공"),
     CHALLENGE_JOIN_SUCCESS(HttpStatus.OK, "200", "챌린지 참여 완료"),
     CHALLENGE_COMPLETE_SUCCESS(HttpStatus.OK, "200", "챌린지 완료 처리 성공"),
+    CHALLENGE_DETAIL_SUCCESS(HttpStatus.OK, "200", "챌린지 상세 조회 성공"),
     ;
     private final HttpStatus httpStatus;
     private final String code;

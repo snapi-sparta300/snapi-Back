@@ -4,10 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import stparta300.snapi.domain.challenge.dto.response.ActiveChallengesResponse;
-import stparta300.snapi.domain.challenge.dto.response.ChallengeListResponse;
-import stparta300.snapi.domain.challenge.dto.response.CompleteChallengeResponse;
-import stparta300.snapi.domain.challenge.dto.response.JoinChallengeResponse;
+import stparta300.snapi.domain.challenge.dto.response.*;
 import stparta300.snapi.domain.challenge.service.ChallengeService;
 import stparta300.snapi.domain.user.service.UserService;
 import stparta300.snapi.global.common.response.ApiResponse;
@@ -34,7 +31,7 @@ public class ChallengeController {
 
     @Operation(summary = "전체 챌린지 목록 조회",
             description = "모든 챌린지 목록을 조회합니다.")
-    @GetMapping("/challenges")
+    @GetMapping("/challenges/all")
     public ApiResponse<ChallengeListResponse> getChallenges() {
         return ApiResponse.onSuccess(
                 SuccessStatus.CHALLENGE_LIST_SUCCESS, // (200, "200", "전체 챌린지 목록 조회 성공")
@@ -66,4 +63,19 @@ public class ChallengeController {
                 challengeService.complete(userId, challengeId)
         );
     }
+
+
+    @Operation(summary = "챌린지 상세조회",
+            description = "특정 챌린지의 상세 정보와 미션 목록을 조회. userId 전달 시 각 미션별 참여 여부/상태 포함.")
+    @GetMapping("/challenges/detail/{challengeId}")
+    public ApiResponse<ChallengeDetailResponse> getDetail(
+            @PathVariable Long challengeId,
+            @RequestParam(value = "userId", required = false) Long userId
+    ) {
+        return ApiResponse.onSuccess(
+                SuccessStatus.CHALLENGE_DETAIL_SUCCESS, // (200, "챌린지 상세 조회 성공")
+                challengeService.getChallengeDetail(challengeId, userId)
+        );
+    }
+
 }
