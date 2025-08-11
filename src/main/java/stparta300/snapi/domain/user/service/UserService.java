@@ -1,5 +1,7 @@
 package stparta300.snapi.domain.user.service;
 
+import stparta300.snapi.domain.challenge.dto.response.ActiveChallengesResponse;
+import stparta300.snapi.domain.challenge.dto.response.JoinChallengeResponse;
 import stparta300.snapi.domain.user.dto.request.LoginRequest;
 import stparta300.snapi.domain.user.dto.request.ProfileSetupRequest;
 import stparta300.snapi.domain.user.dto.request.SignupRequest;
@@ -13,5 +15,6 @@ public interface UserService {
     UserDetailResponse getMemberProfile(Long userId);
     UpdateMemberResponse updateMember(Long userId, UpdateMemberRequest request);
     PointHistoryResponse getPointHistory(Long userId);
+    ActiveChallengesResponse getActiveChallenges(Long userId);
 
 }

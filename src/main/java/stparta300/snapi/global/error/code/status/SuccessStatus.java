@@ -15,9 +15,9 @@ public enum SuccessStatus implements BaseCode {
     MEMBER_UPDATE_SUCCESS(HttpStatus.OK, "MEMBER_SE2006", "회원정보 수정 완료"),
     MEMBER_POINT_READ_SUCCESS(HttpStatus.OK, "MEMBER_SE2010", "포인트 내역 조회 성공"),
     MEMBER_POINT_HISTORY_SUCCESS(HttpStatus.OK, "200", "포인트 내역 조회 성공"),
-
-
-
+    CHALLENGE_ACTIVE_LIST_SUCCESS(HttpStatus.OK, "200", "참여 중인 챌린지 목록 조회 성공"),
+    CHALLENGE_LIST_SUCCESS(HttpStatus.OK, "200", "전체 챌린지 목록 조회 성공"),
+    CHALLENGE_JOIN_SUCCESS(HttpStatus.OK, "200", "챌린지 참여 완료"),
     ;
     private final HttpStatus httpStatus;
     private final String code;
@@ -41,3 +41,4 @@ public enum SuccessStatus implements BaseCode {
                 .httpStatus(httpStatus)
                 .build();
     }
+}

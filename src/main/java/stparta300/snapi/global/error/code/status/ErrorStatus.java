@@ -19,7 +19,9 @@ public enum ErrorStatus implements BaseErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER404", "사용자를 찾을 수 없습니다."),
     MEMBER_EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, "MEMBER400_EMAIL", "이미 사용 중인 이메일입니다."),
     MEMBER_UPDATE_BAD_REQUEST(HttpStatus.BAD_REQUEST, "MEMBER400", "회원정보 수정 실패"),
-
+    CHALLENGE_NOT_FOUND(HttpStatus.NOT_FOUND, "404", "대상을 찾을 수 없습니다."), // 챌린지 미존재
+    CHALLENGE_CAPACITY_FULL(HttpStatus.CONFLICT, "409", "챌린지 정원이 가득 찼습니다."),
+    CHALLENGE_ALREADY_JOINED(HttpStatus.CONFLICT, "409", "이미 참여 중인 챌린지입니다."), // (선택)
     ;
 
 

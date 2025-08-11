@@ -5,6 +5,7 @@ import lombok.*;
 import stparta300.snapi.domain.model.entity.BaseEntity;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder

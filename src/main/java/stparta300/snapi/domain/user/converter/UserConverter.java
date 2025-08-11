@@ -1,9 +1,12 @@
 package stparta300.snapi.domain.user.converter;
 
 import org.springframework.stereotype.Component;
+import stparta300.snapi.domain.challenge.dto.response.ActiveChallengesResponse;
+import stparta300.snapi.domain.challenge.dto.response.JoinChallengeResponse;
 import stparta300.snapi.domain.user.dto.request.SignupRequest;
 import stparta300.snapi.domain.user.dto.response.*;
 import stparta300.snapi.domain.user.entity.User;
+import stparta300.snapi.domain.user.entity.UserChallenge;
 import stparta300.snapi.domain.user.entity.UserMission;
 import stparta300.snapi.domain.model.enums.Gender;
 import stparta300.snapi.domain.user.dto.request.ProfileSetupRequest;
@@ -135,4 +138,45 @@ public class UserConverter {
     }
 
 
+    public ActiveChallengesResponse toActiveChallengesResponse(User user, List<UserChallenge> list) {
+        List<ActiveChallengesResponse.Item> items = list.stream().map(uc -> {
+            var c = uc.getChallenge();
+            long totalMission = c.getTotalMission() != null ? c.getTotalMission().longValue() : 0L;
+            long success = uc.getSuccessMission() != null ? uc.getSuccessMission() : 0L;
+            double progress = (totalMission > 0) ? ((double) success / (double) totalMission) : 0.0;
+
+            Long maxCount = c.getMaxCount() != null ? c.getMaxCount().longValue() : 0L;
+            Long current = c.getCount() != null ? c.getCount().longValue() : 0L;
+
+            return ActiveChallengesResponse.Item.builder()
+                    .userChallengeId(uc.getId())
+                    .challengeId(c.getId())
+                    .name(c.getName())
+                    .companyName(c.getCompanyName())
+                    .comment(c.getComment())
+                    .totalMission(totalMission)
+                    .successMission(success)
+                    .progress(progress)
+                    .maxCount(maxCount)
+                    .currentCount(current)
+                    .totalPoint(c.getTotalPoint())
+                    .state("진행중") // 명세 고정값
+                    .build();
+        }).toList();
+
+        return ActiveChallengesResponse.builder()
+                .userId(user.getId())
+                .userName(user.getUserName())
+                .challenges(items)
+                .build();
+    }
+
+    public JoinChallengeResponse toJoinChallengeResponse(User user, UserChallenge uc) {
+        return JoinChallengeResponse.builder()
+                .userId(user.getId())
+                .userName(user.getUserName())
+                .userChallengeId(uc.getId())
+                .challengeId(uc.getChallenge().getId())
+                .build();
+    }
 }
