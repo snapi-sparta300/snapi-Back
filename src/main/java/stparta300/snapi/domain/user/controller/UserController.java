@@ -74,4 +74,14 @@ public class UserController {
                 userService.updateMember(id, request)
         );
     }
+
+    @Operation(summary = "포인트 내역 조회", description = "특정 사용자의 보유 포인트 및 완료된 미션 적립 내역을 조회")
+    @GetMapping("/members/point/{id}")
+    public ApiResponse<PointHistoryResponse> getPointHistory(@PathVariable("id") Long id) {
+        return ApiResponse.onSuccess(
+                SuccessStatus.MEMBER_POINT_HISTORY_SUCCESS, // (200, "포인트 내역 조회 성공", ...)
+                userService.getPointHistory(id)
+        );
+    }
+
 }

@@ -19,6 +19,7 @@ public enum ErrorStatus implements BaseErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER404", "사용자를 찾을 수 없습니다."),
     MEMBER_EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, "MEMBER400_EMAIL", "이미 사용 중인 이메일입니다."),
     MEMBER_UPDATE_BAD_REQUEST(HttpStatus.BAD_REQUEST, "MEMBER400", "회원정보 수정 실패"),
+
     ;
 
 

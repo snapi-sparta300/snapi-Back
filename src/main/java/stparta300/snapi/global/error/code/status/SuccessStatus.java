@@ -13,6 +13,11 @@ public enum SuccessStatus implements BaseCode {
     PROFILE_SETUP_SUCCESS(HttpStatus.OK, "MEMBER_SE2003", "프로필 설정 완료"),
     MEMBER_PROFILE_READ_SUCCESS(HttpStatus.OK, "MEMBER_SE2005", "회원 프로필 조회 성공"),
     MEMBER_UPDATE_SUCCESS(HttpStatus.OK, "MEMBER_SE2006", "회원정보 수정 완료"),
+    MEMBER_POINT_READ_SUCCESS(HttpStatus.OK, "MEMBER_SE2010", "포인트 내역 조회 성공"),
+    MEMBER_POINT_HISTORY_SUCCESS(HttpStatus.OK, "200", "포인트 내역 조회 성공"),
+
+
+
     ;
     private final HttpStatus httpStatus;
     private final String code;
@@ -36,4 +41,3 @@ public enum SuccessStatus implements BaseCode {
                 .httpStatus(httpStatus)
                 .build();
     }
-}

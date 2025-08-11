@@ -4,11 +4,15 @@ import org.springframework.stereotype.Component;
 import stparta300.snapi.domain.user.dto.request.SignupRequest;
 import stparta300.snapi.domain.user.dto.response.*;
 import stparta300.snapi.domain.user.entity.User;
+import stparta300.snapi.domain.user.entity.UserMission;
 import stparta300.snapi.domain.model.enums.Gender;
 import stparta300.snapi.domain.user.dto.request.ProfileSetupRequest;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
+
 @Component
 public class UserConverter {
     public LoginResponse toLoginResponse(Long userId) {
@@ -102,5 +106,33 @@ public class UserConverter {
                 .userPoint(u.getUserPoint())
                 .build();
     }
+    public PointHistoryResponse toPointHistoryResponse(
+            User user,
+            List<UserMission> histories,
+            long totalEarned
+    ) {
+        DateTimeFormatter iso = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+        List<PointHistoryResponse.HistoryDto> items = histories.stream()
+                .map(um -> PointHistoryResponse.HistoryDto.builder()
+                        .userMissionId(um.getId())
+                        .challengeId(um.getChallenge().getId())
+                        .missionId(um.getMission().getId())
+                        .missionName(um.getMission().getName())  // Mission.name
+                        .point(um.getMission().getPoint())       // Mission.point
+                        .state(um.getState().name())             // PASS/IN_PROGRESS/FAIL
+                        .createdAt(um.getCreatedAt() != null ? um.getCreatedAt().format(iso) : null)
+                        .build())
+                .toList();
+
+        return PointHistoryResponse.builder()
+                .userId(user.getId())
+                .userName(user.getUserName())
+                .currentPoint(user.getUserPoint())
+                .totalEarned(totalEarned)
+                .histories(items)
+                .build();
+    }
+
 
 }

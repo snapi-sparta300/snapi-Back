@@ -31,7 +31,9 @@ public class SecurityConfig {
             "/webjars/**",
             "/login/**",
             "/signup/**",
-            "/members/**"
+            "/members/**",
+            "/challenges/**",
+            "/mission/**",
 
     };
 
