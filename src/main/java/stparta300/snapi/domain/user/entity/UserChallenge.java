@@ -7,6 +7,7 @@ import stparta300.snapi.domain.model.entity.BaseEntity;
 import stparta300.snapi.domain.model.enums.ChallengeState;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder

@@ -25,6 +25,13 @@ public enum ErrorStatus implements BaseErrorCode {
     USER_CHALLENGE_NOT_FOUND(HttpStatus.BAD_REQUEST, "400", "잘못된 요청입니다."),
     CHALLENGE_NOT_ALL_MISSIONS_DONE(HttpStatus.CONFLICT, "409", "모든 미션을 완료하지 않아 챌린지를 완료할 수 없습니다."),
     CHALLENGE_ALREADY_COMPLETED(HttpStatus.CONFLICT, "409", "이미 완료된 챌린지입니다."),// (선택)
+    NULL_MEMBER_OR_FILE(HttpStatus.CONFLICT, "404", "userId 혹은 파일이 비어있습니다."),
+    MISSION_NOT_FOUND(HttpStatus.CONFLICT, "404", "mission을 찾을 수 없습니다."),
+    IMAGE_ALREADY_VERIFIED(HttpStatus.CONFLICT, "409", "이미지가 중복되었습니다."),
+    MISSION_ALREADY_COMPLETED(HttpStatus.CONFLICT, "409", "이미 완료된 미션입니다."),
+    INTERNAL_SERVER_ERROR(HttpStatus.CONFLICT, "500", "INTERNAL_SERVER_ERROR"),
+    FILE_UPLOAD_FAIL(HttpStatus.CONFLICT, "500", "FILE_UPLOAD_FAIL"),
+    IMAGE_ALREADY_EXISTS(HttpStatus.CONFLICT, "409", "올린 이미지가 중복되었습니다."),
     ;
 
 
