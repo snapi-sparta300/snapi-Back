@@ -40,4 +40,11 @@ public class UserChallenge extends BaseEntity {
     // 성공 미션 개수
     @Column(nullable = false)
     private Long successMission;
+
+    public void markCompleted() {
+        this.state = ChallengeState.COMPLETED;  // enum 값 이름 확인 필요(아래 참고)
+        // BaseEntity가 자동으로 updatedAt 갱신해주면 생략, 아니면 필요 시 수동 갱신
+        // this.updatedAt = LocalDateTime.now();
+    }
+
 }

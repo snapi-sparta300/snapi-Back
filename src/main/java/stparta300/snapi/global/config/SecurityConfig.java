@@ -23,13 +23,18 @@ public class SecurityConfig {
 
 
     private static final String[] SECURITY_ALLOW_ARRAY = {
-            "/api/login",
             "/v2/api-docs",
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/webjars/**"
+            "/webjars/**",
+            "/login/**",
+            "/signup/**",
+            "/members/**",
+            "/challenges/**",
+            "/mission/**",
+
     };
 
     @Bean

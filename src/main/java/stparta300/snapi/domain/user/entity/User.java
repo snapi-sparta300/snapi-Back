@@ -8,6 +8,7 @@ import stparta300.snapi.domain.model.enums.Gender;
 import java.time.LocalDate;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
