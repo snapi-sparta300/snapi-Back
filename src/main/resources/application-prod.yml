@@ -30,3 +30,10 @@ cloud:
       static: ap-northeast-2
     s3:
       bucket: snapi-s3
+app:
+  ai:
+    base-url: "http://15.164.221.232:5000"   # 배포 IP
+    predict-path: "/predict"               # 엔드포인트 경로
+    connect-timeout-ms: 2000               # 필요시 조정
+    read-timeout-ms: 9000
+    pass-threshold: 0.50   # <- 필요에 맞게 조정 (예: 0.90이면 더 엄격)

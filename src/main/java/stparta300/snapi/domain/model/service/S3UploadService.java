@@ -8,6 +8,8 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import java.net.URI;
 
 import java.io.InputStream;
 import java.util.Objects;
@@ -57,5 +59,35 @@ public class S3UploadService {
     private String trimSlash(String s) {
         if (s == null || s.isBlank()) return "";
         return s.replaceAll("^/+", "").replaceAll("/+$", "");
+    }
+
+    /** S3 key 를 직접 알고 있을 때 삭제 */
+    public void deleteByKey(String key) {
+        DeleteObjectRequest req = DeleteObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build();
+        s3Client.deleteObject(req);
+    }
+
+    /** 업로드 시 돌려준 퍼블릭 URL로 삭제 (virtual-hosted 형식 가정) */
+    public void deleteByUrl(String url) {
+        try {
+            URI u = URI.create(url);
+            // 예: https://{bucket}.s3.{region}.amazonaws.com/{key}
+            String host = u.getHost();                   // {bucket}.s3.ap-northeast-2.amazonaws.com
+            String path = u.getPath();                   // /challenges/1/missions/1/users/4/uuid_name.jpg
+            String key  = path.startsWith("/") ? path.substring(1) : path;
+
+            // 혹시라도 버킷이 다르면(안 맞으면) 방어적으로 그냥 key 기반 삭제
+            if (host != null && host.startsWith(bucket + ".")) {
+                deleteByKey(key);
+            } else {
+                // 업로드 시 생성한 URL 포맷이 다르면 여기서 파싱 규칙을 바꿔주세요.
+                deleteByKey(key);
+            }
+        } catch (Exception ignored) {
+            // 삭제 실패해도 비즈니스 플로우는 그대로 진행
+        }
     }
 }

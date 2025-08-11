@@ -1,15 +1,12 @@
 package stparta300.snapi.domain.mission.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 import stparta300.snapi.domain.challenge.entity.Challenge;
 import stparta300.snapi.domain.challenge.repository.ChallengeRepository;
@@ -20,24 +17,23 @@ import stparta300.snapi.domain.mission.entity.VerifiedImage;
 import stparta300.snapi.domain.mission.repository.MissionRepository;
 import stparta300.snapi.domain.mission.repository.TempImageRepository;
 import stparta300.snapi.domain.mission.repository.VerifiedImageRepository;
+import stparta300.snapi.domain.model.enums.UserMissionState;
 import stparta300.snapi.domain.model.service.S3UploadService;
 import stparta300.snapi.domain.user.entity.User;
-import stparta300.snapi.domain.user.entity.UserChallenge;
 import stparta300.snapi.domain.user.entity.UserMission;
+import stparta300.snapi.domain.user.handler.UserHandler;
 import stparta300.snapi.domain.user.repository.UserChallengeRepository;
 import stparta300.snapi.domain.user.repository.UserMissionRepository;
 import stparta300.snapi.domain.user.repository.UserRepository;
 import stparta300.snapi.global.error.code.status.ErrorStatus;
-import stparta300.snapi.domain.user.handler.UserHandler;
-import stparta300.snapi.domain.model.enums.UserMissionState;
 
-import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MissionServiceImpl implements MissionService {
@@ -51,11 +47,12 @@ public class MissionServiceImpl implements MissionService {
     private final VerifiedImageRepository verifiedImageRepository;
     private final S3UploadService s3UploadService;
 
-    private final ObjectMapper om = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
+    /** Spring 6+ RestClient (RestClientConfig에서 Bean 제공) */
+    private final RestClient aiRestClient;
 
-    @Value("${app.ai.url:http://localhost:5000/api/verify}")
-    private String aiUrl;
+    /** 통과 임계값은 yml에서 조정 가능 (기본 0.6) */
+    @Value("${app.ai.pass-threshold:0.6}")
+    private double passThreshold;
 
     @Override
     @Transactional
@@ -64,6 +61,7 @@ public class MissionServiceImpl implements MissionService {
             throw new UserHandler(ErrorStatus.NULL_MEMBER_OR_FILE);
         }
 
+        // 엔티티 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus.MEMBER_NOT_FOUND));
         Challenge challenge = challengeRepository.findById(challengeId)
@@ -71,19 +69,12 @@ public class MissionServiceImpl implements MissionService {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus.MISSION_NOT_FOUND));
 
-        // 1) SHA-256
+        // 1) SHA-256 계산 (업로드 전)
         String sha256 = sha256Hex(file);
 
-        // ✅ (추가) 글로벌/사전 중복 검증: PASS만이 아니라 업로드 자체를 차단
-        if (verifiedImageRepository.existsBySha256Hash(sha256)
-                || tempImageRepository.existsBySha256Hash(sha256)) {
-            // 프로젝트 에러코드에 맞춰 변경
+        // 2) Temp 테이블 중복 검사(요구사항: Temp만 검사)
+        if (tempImageRepository.existsBySha256Hash(sha256)) {
             throw new UserHandler(ErrorStatus.IMAGE_ALREADY_EXISTS); // 409
-        }
-
-        // 2) 글로벌 중복
-        if (verifiedImageRepository.existsBySha256Hash(sha256)) {
-            throw new UserHandler(ErrorStatus.IMAGE_ALREADY_VERIFIED); // 409 매핑
         }
 
         // 3) UserMission upsert
@@ -102,15 +93,14 @@ public class MissionServiceImpl implements MissionService {
 
         // 4) S3 업로드
         String prefix = String.format("challenges/%d/missions/%d/users/%d", challengeId, missionId, userId);
-
-        String imageUrl;
+        final String imageUrl;
         try {
             imageUrl = s3UploadService.upload(file, prefix);
-        } catch (Exception e) {  // ← S3UploadService 가 throws Exception 이면 반드시 처리해야 함
-            // 로깅 원하면 여기서 로그
-            throw new UserHandler(ErrorStatus.FILE_UPLOAD_FAIL); // 없으면 INTERNAL_SERVER_ERROR 로 대체
+        } catch (Exception e) {
+            throw new UserHandler(ErrorStatus.FILE_UPLOAD_FAIL);
         }
-        // 5) TempImage 1장 정책(업서트)
+
+        // 5) TempImage “1장 정책” → 기존 것 삭제 후 새로 저장
         List<TempImage> olds = tempImageRepository.findByUserMission_Id(um.getId());
         if (!olds.isEmpty()) tempImageRepository.deleteAllInBatch(olds);
 
@@ -126,8 +116,9 @@ public class MissionServiceImpl implements MissionService {
         // 6) AI 동기 호출
         AiResult ai = callAi(challengeId, missionId, userId, temp.getId(), imageUrl);
 
-        // 7) PASS / FAIL
+        // 7) PASS / FAIL 분기 처리
         if (ai.pass) {
+            // PASS → Verified 저장, UserMission 완료, 포인트 적립, UserChallenge 성공 카운트 +1
             verifiedImageRepository.save(
                     VerifiedImage.builder()
                             .userMission(um)
@@ -138,13 +129,12 @@ public class MissionServiceImpl implements MissionService {
                             .sha256Hash(sha256)
                             .build()
             );
+
             um.setState(UserMissionState.PASS);
 
-            // 포인트 적립
-            long before = user.getUserPoint() == null ? 0L : user.getUserPoint();
-            long award  = mission.getPoint()   == null ? 0L : mission.getPoint();
-            user.setUserPoint(before + award);
-            user.setUserPoint(user.getUserPoint() + mission.getPoint());
+            long curr = Optional.ofNullable(user.getUserPoint()).orElse(0L);
+            long award = Optional.ofNullable(mission.getPoint()).orElse(0L);
+            user.setUserPoint(curr + award);
 
             userChallengeRepository.findByUser_IdAndChallenge_Id(userId, challengeId)
                     .ifPresent(uc -> uc.setSuccessMission(uc.getSuccessMission() + 1));
@@ -155,16 +145,18 @@ public class MissionServiceImpl implements MissionService {
                     .imageUrl(imageUrl)
                     .sha256Hash(sha256)
                     .status("PASS")
-                    .awardedPoint(mission.getPoint())
+                    .awardedPoint(award)
                     .confidence(ai.confidence)
                     .classDetected(ai.classDetected)
                     .bbox(ai.bbox)
                     .build();
         } else {
+            // FAIL → UserMission 실패, Temp 삭제, S3 객체 삭제(요구사항 유지)
             um.setState(UserMissionState.FAIL);
-
-            // 실패 시 Temp 이미지에서 삭제하도록 함
             tempImageRepository.delete(temp);
+            try {
+                s3UploadService.deleteByUrl(imageUrl);
+            } catch (Exception ignore) { /* 삭제 실패해도 흐름 유지 */ }
 
             return MissionImageResponse.builder()
                     .userMissionId(um.getId())
@@ -176,7 +168,7 @@ public class MissionServiceImpl implements MissionService {
         }
     }
 
-    /** checked exception을 모두 내부에서 처리해 컴파일 에러 제거 */
+    /** 파일의 SHA-256 해시(소문자 hex) */
     private String sha256Hex(MultipartFile file) {
         try (InputStream in = file.getInputStream()) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -186,81 +178,138 @@ public class MissionServiceImpl implements MissionService {
                 md.update(buf, 0, r);
             }
             byte[] dig = md.digest();
-            StringBuilder sb = new StringBuilder(64);
+            StringBuilder sb = new StringBuilder(dig.length * 2);
             for (byte b : dig) sb.append(String.format("%02x", b));
             return sb.toString();
-        } catch (IOException | NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new UserHandler(ErrorStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            throw new UserHandler(ErrorStatus.FILE_UPLOAD_FAIL);
         }
     }
 
-    /** Rest/Jackson 예외를 모두 catch; multi-catch에서 부모/자식 중복 금지 */
+    /** RestClient로 AI 서버에 JSON POST → 응답 해석(키/타입 변동에 내성 있게) */
     private AiResult callAi(Long challengeId, Long missionId, Long userId, Long tempImageId, String imageUrl) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
             Map<String, Object> payload = Map.of(
                     "challengeId", challengeId,
-                    "missionId", missionId,
-                    "userId", userId,
+                    "missionId",   missionId,
+                    "userId",      userId,
                     "tempImageId", tempImageId,
-                    "imageUrl", imageUrl
+                    "imageUrl",    imageUrl
             );
-            ResponseEntity<String> res = restTemplate.exchange(
-                    aiUrl, HttpMethod.POST, new HttpEntity<>(payload, headers), String.class
-            );
-            if (!res.getStatusCode().is2xxSuccessful() || res.getBody() == null) return AiResult.fail();
 
-            JsonNode root;
-            try {
-                root = om.readTree(res.getBody());
-            } catch (JsonProcessingException e) {
+            ResponseEntity<Map> res = aiRestClient
+                    .post()
+                    .uri(URI.create("/predict"))
+                    .body(payload)
+                    .retrieve()
+                    .toEntity(Map.class);
+
+            if (!res.getStatusCode().is2xxSuccessful() || res.getBody() == null) {
+                log.warn("AI response not 2xx or empty: {}", res.getStatusCode());
                 return AiResult.fail();
             }
 
-//            boolean success = root.path("success").asBoolean(false);
-//            double confidence = root.path("confidence").asDouble(0.0);
-//            String classDetected = root.path("classDetected").asText(null);
-//            String bbox = root.path("bbox").asText(null);
-//
-//            boolean classOk = toTruth(classDetected);
-//            boolean pass = success && confidence >= 0.9 && classOk;
-//            return AiResult.pass(confidence, classDetected, bbox);
-            boolean success = root.path("success").asBoolean(false);
-            double confidence = root.path("confidence").asDouble(0.0);
-            String classDetected = root.path("classDetected").asText(null);
-            String bbox = root.path("bbox").asText(null);
+            Map<String, Object> body = res.getBody();
+
+            // success: boolean 기대
+            boolean success = asBoolean(body.get("success"));
+
+            // confidence: "confidence" 또는 "Confidence"
+            Double confidence = asDouble(
+                    body.containsKey("confidence") ? body.get("confidence") : body.get("Confidence")
+            );
+
+            // classDetected: boolean 또는 문자열("True"/"False"/클래스명)
+            Object rawCls = body.get("classDetected");
+            String classDetected = normalizeClassDetected(rawCls); // "true"/"false"/"palm" 등 문자열화
+
+            // bbox: 문자열 또는 배열(List/Array)
+            Object rawBbox = body.get("bbox");
+            String bbox = normalizeBbox(rawBbox); // "x1,y1,x2,y2" 형태로 정규화(없으면 null)
 
             boolean classOk = toTruth(classDetected);
-            boolean pass = success && confidence >= 0.9 && classOk;
+            double conf = confidence == null ? 0.0 : confidence;
 
-            return pass ? AiResult.pass(confidence, classDetected, bbox)
-                    : AiResult.fail();
+            boolean pass = success && classOk && conf >= passThreshold;
 
-        } catch (RestClientException e) {     // 이미 RuntimeException의 하위 → 단독 catch
-            return AiResult.fail();
-        } catch (RuntimeException e) {        // 기타 런타임
+            if (!pass) {
+                log.info("AI FAIL => success={}, classOk={}, confidence={}, threshold={}, classDetected={}, bbox={}",
+                        success, classOk, conf, passThreshold, classDetected, bbox);
+            } else {
+                log.info("AI PASS  => success={}, classOk={}, confidence={}, threshold={}, classDetected={}, bbox={}",
+                        success, classOk, conf, passThreshold, classDetected, bbox);
+            }
+
+            return pass ? AiResult.pass(conf, classDetected, bbox) : AiResult.fail();
+
+        } catch (Exception e) {
+            // 서버 미가동/타임아웃/파싱 실패 등은 FAIL로 처리(정책상)
+            log.warn("AI call failed, treat as FAIL. reason={}", e.toString());
             return AiResult.fail();
         }
     }
 
-//    private boolean toTruth(String v) {
-//        if (v == null) return false;
-//        String s = v.trim().toLowerCase();
-//        return s.equals("true") || s.equals("1") || s.equals("yes") || s.equals("palm");
-//    }
+    /** "true"/"1"/"yes"(대소문자 무시) → true */
     private boolean toTruth(String v) {
-    if (v == null) return false;
-    String s = v.trim().toLowerCase();
-    return s.equals("true") || s.equals("1") || s.equals("yes");
-}
+        if (v == null) return false;
+        String s = v.trim().toLowerCase();
+        return s.equals("true") || s.equals("1") || s.equals("yes");
+    }
 
-    /** record → static class 로 교체(구 JDK 호환) */
+    /** 다양한 타입(Boolean/Number/String)을 Double로 안전 변환 */
+    private Double asDouble(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) return n.doubleValue();
+        if (o instanceof String s) {
+            try { return Double.parseDouble(s.trim()); } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    /** 다양한 타입(Boolean/String/Number)을 boolean으로 안전 변환 */
+    private boolean asBoolean(Object o) {
+        if (o == null) return false;
+        if (o instanceof Boolean b) return b;
+        if (o instanceof Number n) return n.intValue() != 0;
+        if (o instanceof String s) return toTruth(s);
+        return false;
+    }
+
+    /** classDetected의 원시값을 문자열로 정규화 */
+    private String normalizeClassDetected(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof Boolean b) return b ? "true" : "false";
+        return String.valueOf(raw);
+    }
+
+    /** bbox가 배열이면 "x1,y1,x2,y2"로 직렬화, 문자열이면 그대로, 아니면 null */
+    @SuppressWarnings("unchecked")
+    private String normalizeBbox(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof String s) return s.isBlank() ? null : s;
+        if (raw instanceof List<?> list && !list.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (Object v : list) {
+                if (sb.length() > 0) sb.append(',');
+                sb.append(v);
+            }
+            return sb.toString();
+        }
+        if (raw.getClass().isArray()) {
+            Object[] arr = (Object[]) raw;
+            return String.join(",", Arrays.stream(arr).map(String::valueOf).toList());
+        }
+        return null;
+    }
+
+    /** 내부 전달용 결과 포맷 */
     private static class AiResult {
         final boolean pass;
-        final Double confidence;
-        final String classDetected;
-        final String bbox;
+        final Double  confidence;
+        final String  classDetected;
+        final String  bbox;
 
         private AiResult(boolean pass, Double confidence, String classDetected, String bbox) {
             this.pass = pass;
@@ -268,7 +317,7 @@ public class MissionServiceImpl implements MissionService {
             this.classDetected = classDetected;
             this.bbox = bbox;
         }
-        static AiResult pass(Double c, String cls, String b) { return new AiResult(true, c, cls, b); }
-        static AiResult fail() { return new AiResult(false, null, null, null); }
+        static AiResult pass(Double c, String cls, String b) { return new AiResult(true,  c, cls, b); }
+        static AiResult fail()                                 { return new AiResult(false, null, null, null); }
     }
 }
