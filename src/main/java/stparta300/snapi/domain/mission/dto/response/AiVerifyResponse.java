@@ -11,8 +11,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AiVerifyResponse {
     private boolean success;
-    private String  challengeId;   // 응답이 "1" 같은 문자열이므로 String 권장
-    private String  missionId;
+    private Long  challengeId;   // 응답이 "1" 같은 문자열이므로 String 권장
+    private Long  missionId;
     private Long    userId;
     private Long    tempImageId;
     private String  imageUrl;
