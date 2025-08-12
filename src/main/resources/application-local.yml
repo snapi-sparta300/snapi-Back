@@ -52,4 +52,4 @@ app:
     predict-path: "/predict"               # 엔드포인트 경로
     connect-timeout-ms: 2000               # 필요시 조정
     read-timeout-ms: 9000
-    pass-threshold: 0.50   # <- 필요에 맞게 조정 (예: 0.90이면 더 엄격)
+    pass-threshold: 0.70   # <- 필요에 맞게 조정 (예: 0.90이면 더 엄격)
