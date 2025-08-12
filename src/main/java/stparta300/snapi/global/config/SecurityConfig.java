@@ -64,8 +64,10 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:8080",   // Swagger UI
                 "http://localhost:3000",   // React
-                "http://localhost:5173"    // Vite 등
-        ));
+                "http://localhost:5173",    // Vite 등
+                "http://127.0.0.1:59054",
+                "http://localhost:59054"
+                ));
         // 또는: config.addAllowedOriginPattern("*");  // 임시 전체 허용
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
