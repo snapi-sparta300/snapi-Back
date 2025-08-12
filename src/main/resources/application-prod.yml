@@ -23,13 +23,22 @@ logging:
 
 cloud:
   aws:
-    credentials:
-      access-key: ${AWS_ACCESS_KEY}
-      secret-key: ${AWS_SECRET_KEY}
     region:
       static: ap-northeast-2
+    stack:
+      auto: false
     s3:
       bucket: snapi-s3
+
+#cloud:
+#  aws:
+#    credentials:
+#      access-key: ${AWS_ACCESS_KEY}
+#      secret-key: ${AWS_SECRET_KEY}
+#    region:
+#      static: ap-northeast-2
+#    s3:
+#      bucket: snapi-s3
 app:
   ai:
     base-url: "http://15.164.221.232:5000"   # 배포 IP
