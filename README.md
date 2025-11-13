@@ -4,9 +4,6 @@
 
 > 기업에는 저비용·고품질의 학습 데이터를, 사용자에게는 실질적 보상과 AI 발전 기여 경험을 제공하는 **AI 데이터 크라우드소싱 플랫폼**
 
-<p align="center">
-  <img src="https://github.com/snapi-sparta300/snapi-Back/assets/banner.png" width="720px" />
-</p>
 
 ---
 
