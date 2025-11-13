@@ -1,5 +1,3 @@
-# snapi-Back
-snapi Backend Repository
 # 🧩 Snapi – AI 학습 데이터 크라우드소싱 플랫폼
 > **2025 스파르탄 위닝 창업 캠프 우수상**  
 > (스파르탄 SW교육원)
